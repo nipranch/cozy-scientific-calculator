@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>CozyCalc</title>
+<style>
+  :root{
+    --bg:#f5f1ea; --card:#fffdf9; --text:#302d29; --muted:#8a847b;
+    --key:#f0ebe3; --key2:#e7dfd3; --accent:#8d7357; --accentText:#fffaf2;
+    --danger:#d67c6d; --line:#ebe4da;
+  }
+  *{box-sizing:border-box}
+  html,body{width:100%;min-height:100%;margin:0}
+  body{
+    min-height:100svh;display:grid;place-items:center;padding:10px;
+    background:
+      radial-gradient(circle at 10% 10%,rgba(255,255,255,.82),transparent 30%),
+      radial-gradient(circle at 90% 90%,rgba(221,207,188,.45),transparent 34%),
+      var(--bg);
+    color:var(--text);
+    font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }
+  .calculator{
+    width:min(360px,94vw);
+    padding:10px;
+    background:rgba(255,253,249,.9);
+    border:1px solid rgba(255,255,255,.85);
+    border-radius:20px;
+    box-shadow:0 20px 55px rgba(65,52,38,.12);
+    backdrop-filter:blur(18px);
+  }
+  .top{
+    display:flex;justify-content:space-between;align-items:center;
+    margin:0 2px 6px;
+  }
+  .brand{font-weight:750;letter-spacing:-.03em;font-size:clamp(.95rem,3.5vw,1.08rem)}
+  .top-right{display:flex;align-items:center;gap:6px}
+  .mode{
+    font-size:.68rem;color:var(--muted);padding:5px 8px;
+    border-radius:99px;background:var(--key);min-width:35px;text-align:center;
+  }
+  .help-icon{
+    width:28px;height:28px;border-radius:50%;padding:0;display:grid;place-items:center;
+    background:var(--key2);color:#675f55;font-size:.82rem;font-weight:800;
+  }
+  .screen{
+    height:88px;padding:9px 11px 8px;margin-bottom:6px;
+    border-radius:18px;background:#f2ede5;
+    display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-end;
+    overflow:hidden;
+  }
+  #expression{
+    font-size:.82rem;color:var(--muted);min-height:20px;width:100%;
+    text-align:right;white-space:nowrap;overflow-x:auto;
+  }
+  #display{
+    width:100%;text-align:right;font-size:clamp(2rem,8vw,2.5rem);
+    font-weight:650;letter-spacing:-.055em;white-space:nowrap;overflow-x:auto;
+  }
+  .tools{
+    display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:7px;
+  }
+  button{
+    border:0;cursor:pointer;color:var(--text);background:var(--key);
+    min-width:0;height:40px;border-radius:10px;font-size:.82rem;
+    font-weight:620;transition:transform .08s,filter .15s,background .15s;
+    -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+    box-shadow:inset 0 -1px 0 rgba(0,0,0,.03);
+  }
+  button:hover{filter:brightness(.97)}
+  button:active{transform:scale(.95)}
+  .tool{height:31px;font-size:.67rem;color:#675f55;background:var(--key2)}
+  .operator{background:#e6ddd0;color:#604e3b}
+  .equals{background:var(--accent);color:var(--accentText)}
+  .clear{color:var(--danger)}
+  .keys{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+  .keys button{height:42px}
+  .zero{grid-column:span 2}
+  .history{
+    margin-top:6px;border-top:1px solid var(--line);padding-top:5px;
+    max-height:48px;overflow:auto;font-size:.66rem;color:var(--muted)
+  }
+  .history div{display:flex;justify-content:space-between;gap:10px;padding:2px}
+  .hint{font-size:.55rem;color:#aaa299;text-align:center;margin-top:4px}
+  .help-overlay{
+    position:fixed;inset:0;background:rgba(48,45,41,.28);display:none;
+    place-items:center;padding:15px;z-index:10;backdrop-filter:blur(5px)
+  }
+  .help-card{
+    width:min(370px,94vw);max-height:88svh;overflow:auto;background:var(--card);
+    border-radius:20px;padding:18px;box-shadow:0 20px 55px rgba(65,52,38,.18);
+    border:1px solid #eee6db
+  }
+  .help-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+  .help-head strong{font-size:1rem}
+  .help-close{width:31px;height:31px;border-radius:50%;padding:0;background:var(--key2)}
+  .help-list{margin:8px 0 0;padding-left:18px;color:#675f55;font-size:.8rem;line-height:1.55}
+  .help-note{margin-top:9px;padding:9px 10px;border-radius:12px;background:#f2ede5;color:#7c746a;font-size:.72rem}
+  @media(max-width:360px){
+    body{padding:5px}
+    .calculator{padding:7px;border-radius:16px}
+    .screen{height:76px;padding:8px 9px 6px}
+    .tools{gap:3px;margin-bottom:4px}
+    .keys{gap:4px}
+    button{height:37px;border-radius:9px}
+    .tool{height:28px;font-size:.61rem}
+    .keys button{height:37px}
+    .history{display:none}
+    .hint{margin-top:5px}
+  }
+  @media(min-width:700px){
+    .calculator{width:360px}
+  }
+  @media(orientation:landscape) and (max-height:560px){
+    body{place-items:start center;padding:5px}
+    .calculator{width:min(520px,96vw);padding:9px}
+    .screen{height:82px;margin-bottom:6px}
+    .tools{gap:3px;margin-bottom:4px}
+    .tool{height:32px}
+    .keys{gap:4px}
+    .keys button{height:40px}
+    .history,.hint{display:none}
+  }
+</style>
+</head>
+<body>
+<main class="calculator">
+  <div class="top">
+    <div class="brand">CozyCalc</div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <button class="help-icon" onclick="toggleHelp()" aria-label="How to use scientific calculator" title="How to use">?</button>
+      <div class="mode" id="angleMode">DEG</div>
+    </div>
+  </div>
+
+  <section class="screen">
+    <div id="expression"></div>
+    <div id="display">0</div>
+  </section>
+
+  <div class="tools">
+    <button class="tool" onclick="toggleAngle()" id="angleBtn">DEG</button>
+    <button class="tool" onclick="insertFunc('sin')">sin</button>
+    <button class="tool" onclick="insertFunc('cos')">cos</button>
+    <button class="tool" onclick="insertFunc('tan')">tan</button>
+    <button class="tool" onclick="insertFunc('asin')">sin⁻¹</button>
+    <button class="tool" onclick="insertFunc('acos')">cos⁻¹</button>
+    <button class="tool" onclick="insertFunc('atan')">tan⁻¹</button>
+    <button class="tool" onclick="insertFunc('log')">log</button>
+    <button class="tool" onclick="insertFunc('ln')">ln</button>
+    <button class="tool" onclick="insertFunc('sqrt')">√</button>
+    <button class="tool" onclick="insertToken('^')">xʸ</button>
+    <button class="tool" onclick="insertToken('!')">x!</button>
+  </div>
+
+  <div class="keys">
+    <button class="clear" onclick="clearAll()">AC</button>
+    <button onclick="backspace()">⌫</button>
+    <button onclick="insertToken('(')">(</button>
+    <button class="operator" onclick="insertToken('÷')">÷</button>
+
+    <button onclick="insertToken('7')">7</button>
+    <button onclick="insertToken('8')">8</button>
+    <button onclick="insertToken('9')">9</button>
+    <button class="operator" onclick="insertToken('×')">×</button>
+
+    <button onclick="insertToken('4')">4</button>
+    <button onclick="insertToken('5')">5</button>
+    <button onclick="insertToken('6')">6</button>
+    <button class="operator" onclick="insertToken('−')">−</button>
+
+    <button onclick="insertToken('1')">1</button>
+    <button onclick="insertToken('2')">2</button>
+    <button onclick="insertToken('3')">3</button>
+    <button class="operator" onclick="insertToken('+')">+</button>
+
+    <button class="zero" onclick="insertToken('0')">0</button>
+    <button onclick="insertToken('.')">.</button>
+    <button class="equals" onclick="calculate()">=</button>
+
+    <button onclick="insertToken(')')">)</button>
+    <button onclick="insertToken('%')">%</button>
+    <button onclick="insertToken('π')">π</button>
+    <button onclick="insertToken('e')">e</button>
+  </div>
+
+  <div class="history" id="history"></div>
+  <div class="hint">Keyboard supported · Enter = calculate · Esc = clear</div>
+</main>
+
+<div class="help-overlay" id="helpOverlay" onclick="closeHelp(event)">
+  <div class="help-card" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="help-head">
+      <strong id="helpTitle">How to use Scientific Mode</strong>
+      <button class="help-close" onclick="toggleHelp()" aria-label="Close help">×</button>
+    </div>
+    <ul class="help-list">
+      <li>Use <b>sin, cos, tan</b> for trigonometry.</li>
+      <li>Use <b>sin⁻¹, cos⁻¹, tan⁻¹</b> for inverse functions.</li>
+      <li><b>DEG/RAD</b> switches the angle unit.</li>
+      <li><b>xʸ</b> calculates powers and <b>x!</b> calculates factorials.</li>
+      <li><b>√, log, ln</b> handle common scientific functions.</li>
+      <li><b>π</b> and <b>e</b> insert mathematical constants.</li>
+      <li>Use parentheses for grouped expressions, e.g. <b>sin(30)</b>.</li>
+    </ul>
+    <div class="help-note">Tip: the calculator also supports your keyboard. Press Enter to calculate and Esc to clear.</div>
+  </div>
+</div>
+
+<script>
+let expression = "";
+let angleMode = "DEG";
+const display = document.getElementById("display");
+const expressionEl = document.getElementById("expression");
+const historyEl = document.getElementById("history");
+
+function render(){
+  display.textContent = expression || "0";
+  expressionEl.textContent = "";
+}
+function insertToken(token){
+  if(display.textContent === "Error") expression = "";
+  expression += token;
+  render();
+}
+function insertFunc(fn){
+  expression += fn + "(";
+  render();
+}
+function clearAll(){
+  expression = "";
+  expressionEl.textContent = "";
+  display.textContent = "0";
+}
+function backspace(){
+  expression = expression.slice(0,-1);
+  render();
+}
+function toggleAngle(){
+  angleMode = angleMode === "DEG" ? "RAD" : "DEG";
+  document.getElementById("angleBtn").textContent = angleMode;
+  document.getElementById("angleMode").textContent = angleMode;
+}
+
+function factorial(n){
+  if(n < 0 || !Number.isInteger(n) || n > 170) throw Error("Invalid factorial");
+  let r=1;
+  for(let i=2;i<=n;i++) r*=i;
+  return r;
+}
+
+function prepare(expr){
+  let s = expr;
+  s = s.replace(/×/g,"*").replace(/÷/g,"/").replace(/−/g,"-");
+
+  // Factorial, including simple parenthesized expressions.
+  s = s.replace(/(\d+(?:\.\d+)?|\([^()]*\)|Math\.PI|Math\.E)!/g,
+    "factorial($1)");
+
+  s = s.replace(/π/g,"Math.PI");
+  s = s.replace(/\be\b/g,"Math.E");
+
+  // Percent behaves as a mathematical percentage value.
+  s = s.replace(/(\d+(?:\.\d+)?|Math\.PI|Math\.E|\([^()]*\))%/g,"($1/100)");
+
+  s = s.replace(/\^/g,"**");
+  s = s.replace(/sqrt\(/g,"Math.sqrt(");
+  s = s.replace(/ln\(/g,"Math.log(");
+  s = s.replace(/log\(/g,"Math.log10(");
+
+  const trig = {
+    sin: "Math.sin", cos: "Math.cos", tan: "Math.tan",
+    asin: "Math.asin", acos: "Math.acos", atan: "Math.atan"
+  };
+
+  for(const [name, fn] of Object.entries(trig)){
+    if(angleMode === "DEG"){
+      if(name.startsWith("a")){
+        s = s.replace(new RegExp(name + "\\\\(", "g"),
+          "(180/Math.PI)*" + fn + "(");
+      }else{
+        s = s.replace(new RegExp(name + "\\\\(", "g"),
+          fn + "((Math.PI/180)*(");
+        // Close the extra conversion parenthesis at the end of each call
+        // using a small parser below instead of trying to balance arbitrary nesting.
+        s = closeDegTrig(s, name);
+      }
+    }else{
+      s = s.replace(new RegExp(name + "\\\\(", "g"), fn + "(");
+    }
+  }
+  return s;
+}
+
+function closeDegTrig(s, name){
+  // Convert "Math.sin((PI/180)*(...)" into "Math.sin((PI/180)*(...)"
+  // by tracking parentheses for each generated trig call.
+  const marker = "Math." + name + "((Math.PI/180)*(";
+  let pos = 0, out = "";
+  while(true){
+    const i = s.indexOf(marker, pos);
+    if(i < 0){ out += s.slice(pos); break; }
+    out += s.slice(pos, i) + marker;
+    let j = i + marker.length, depth = 1;
+    while(j < s.length){
+      if(s[j] === "(") depth++;
+      else if(s[j] === ")"){
+        depth--;
+        if(depth === 0){
+          out += s.slice(i + marker.length, j) + ")";
+          j++;
+          break;
+        }
+      }
+      j++;
+    }
+    pos = j;
+  }
+  return out;
+}
+
+function calculate(){
+  if(!expression) return;
+  try{
+    const raw = expression;
+    const safe = prepare(expression);
+
+    // Only allow generated Math functions/constants, numbers and operators.
+    const cleaned = safe
+      .replace(/Math\.(PI|E|sqrt|log10|log|sin|cos|tan|asin|acos|atan)/g,"")
+      .replace(/factorial/g,"");
+
+    if(!/^[0-9+\-*/%().\s,**]+$/.test(cleaned)){
+      throw Error("Invalid expression");
+    }
+
+    const result = Function("factorial", '"use strict"; return (' + safe + ')')(factorial);
+    if(!Number.isFinite(result)) throw Error("Math error");
+
+    const rounded = Math.abs(result) < 1e-12 ? 0 : Number(result.toPrecision(12));
+    expressionEl.textContent = raw + " =";
+    display.textContent = rounded;
+    addHistory(raw, rounded);
+    expression = String(rounded);
+  }catch(e){
+    expressionEl.textContent = expression;
+    display.textContent = "Error";
+    expression = "";
+  }
+}
+
+function toggleHelp(){
+  const overlay = document.getElementById("helpOverlay");
+  overlay.style.display = overlay.style.display === "grid" ? "none" : "grid";
+}
+function closeHelp(e){
+  if(e.target.id === "helpOverlay") toggleHelp();
+}
+
+function addHistory(q,a){
+  const row=document.createElement("div");
+  row.innerHTML=`<span>${escapeHtml(q)}</span><strong>${escapeHtml(String(a))}</strong>`;
+  historyEl.prepend(row);
+  while(historyEl.children.length>5) historyEl.lastChild.remove();
+}
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+}
+
+document.addEventListener("keydown",e=>{
+  const map={"*":"×","/":"÷","-":"−"};
+  if(/[0-9.+\-*/()%]/.test(e.key)){
+    e.preventDefault();
+    insertToken(map[e.key] || e.key);
+  }else if(e.key==="Enter" || e.key==="="){
+    e.preventDefault(); calculate();
+  }else if(e.key==="Backspace"){backspace();
+  }else if(e.key==="Escape"){clearAll();}
+  else if(e.key.toLowerCase()==="p"){insertToken("π");}
+});
+render();
+</script>
+</body>
+</html>
