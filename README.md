@@ -24,10 +24,6 @@ Built using HTML, CSS and JavaScript with a focus on simplicity, responsiveness 
 - Responsive design
 - Scientific calculator help guide
 
-## 🖥️ Demo
-
-[Live Demo](YOUR_GITHUB_PAGES_LINK)
-
 ## 📱 Responsive Design
 
 CozyCalc is designed to work across:
